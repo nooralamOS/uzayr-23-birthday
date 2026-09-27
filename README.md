@@ -15,11 +15,11 @@ Open the **Network** URL that Vite prints on your phone (same Wi-Fi) to try it o
 
 | What | Where |
 | --- | --- |
-| Photos | `pictures/`, ordered by the number in the filename (`1.png`, `2.png`, …) |
+| Photos | `pictures/`, ordered by the number in the filename (`1.png`, `2.png`, …). The first one is also the site icon (browser tab, iMessage link previews). |
 | Song + cover | `music/`, one audio file (`.mp3`/`.m4a`) and one square image |
 | Greeting, lock-screen song title | `src/config.js` |
 
-`npm run dev` and `npm run build` automatically turn those originals into web-sized files in `public/` plus `src/media.json`. Only files that changed get reprocessed. You can also run that step on its own with `npm run media`.
+`npm run dev` and `npm run build` automatically turn those originals into web-sized files and icons in `public/` plus `src/media.json`. Only files that changed get reprocessed. You can also run that step on its own with `npm run media`.
 
 ## Deploy
 

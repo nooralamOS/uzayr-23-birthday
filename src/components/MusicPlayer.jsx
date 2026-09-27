@@ -8,6 +8,8 @@ const TAB_WIDTH = 38 // how much of the pill peeks in from the edge when tucked 
 const EDGE = 12 // gap to the screen edge when pulled out
 const CLOSED_X = PILL_WIDTH + EDGE - TAB_WIDTH
 const SPRING = { type: 'spring', stiffness: 520, damping: 40 }
+const NUDGE = 14 // how far the tab pokes out to invite a tap
+const NUDGE_EVERY = 4500 // ms
 
 // Resting heights from the mockup, plus where each bar swings to while the song plays.
 const BARS = [
@@ -25,16 +27,19 @@ export default function MusicPlayer({ song }) {
   const [open, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [coverFailed, setCoverFailed] = useState(false)
+  const [discovered, setDiscovered] = useState(false) // opened at least once, so stop nudging
   const reduceMotion = useReducedMotion()
   const x = useMotionValue(CLOSED_X)
-  const tabOpacity = useTransform(x, [CLOSED_X * 0.55, CLOSED_X], [0, 1])
+  const tabOpacity = useTransform(x, [CLOSED_X * 0.55, CLOSED_X * 0.8], [0, 1])
   const bodyOpacity = useTransform(x, [0, CLOSED_X * 0.75], [1, 0])
   const pillRef = useRef(null)
   const audioRef = useRef(null)
   const draggedRef = useRef(false)
+  const draggingRef = useRef(false)
   const wantsMusicRef = useRef(true) // the song is on until they turn it off
 
   const slide = (nextOpen, velocity = 0) => {
+    if (nextOpen) setDiscovered(true)
     setOpen(nextOpen)
     animate(x, nextOpen ? 0 : CLOSED_X, reduceMotion ? { duration: 0.15 } : { ...SPRING, velocity })
   }
@@ -42,6 +47,26 @@ export default function MusicPlayer({ song }) {
   useEffect(() => {
     slideRef.current = slide
   })
+
+  // Until the player has been opened once, the tab pokes out every few seconds to invite a
+  // tap (which also starts the song).
+  useEffect(() => {
+    if (discovered || reduceMotion) return
+    const nudge = () => {
+      if (draggingRef.current) return
+      animate(x, [x.get(), CLOSED_X - NUDGE, CLOSED_X, CLOSED_X - NUDGE / 2, CLOSED_X], {
+        duration: 0.9,
+        times: [0, 0.22, 0.5, 0.72, 1],
+        ease: 'easeInOut',
+      })
+    }
+    const first = setTimeout(nudge, 1500)
+    const repeat = setInterval(nudge, NUDGE_EVERY)
+    return () => {
+      clearTimeout(first)
+      clearInterval(repeat)
+    }
+  }, [discovered, reduceMotion, x])
 
   // Tap anywhere else (or press Escape) to tuck the player away again.
   useEffect(() => {
@@ -142,8 +167,10 @@ export default function MusicPlayer({ song }) {
       }}
       onDragStart={() => {
         draggedRef.current = true
+        draggingRef.current = true
       }}
       onDragEnd={(e, info) => {
+        draggingRef.current = false
         const v = info.velocity.x
         slide(Math.abs(v) > 200 ? v < 0 : x.get() < CLOSED_X / 2, v)
       }}

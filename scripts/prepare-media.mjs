@@ -1,4 +1,4 @@
-// Turns the originals in /pictures and /music into web-ready files + src/media.json.
+// Turns the originals in /pictures and /music into web-ready files, site icons + src/media.json.
 // Runs automatically before `npm run dev` / `npm run build` (and via `npm run media`).
 // Unchanged photos are skipped, so re-runs are quick.
 //
@@ -137,6 +137,36 @@ if (coverFile) {
   nextCache.cover = { key }
   song.cover = 'audio/cover.jpg'
   console.log(`cover: music/${coverFile} → public/${song.cover}`)
+}
+
+// ---------- icons ----------
+// Browser tab, home screen and message link previews all use the first photo, cropped to a
+// square from the upper part of the frame, where the face usually is in a portrait shot.
+
+const iconsOut = path.join(root, 'public', 'icons')
+const ICONS = { 'icon-32.png': 32, 'icon-192.png': 192, 'apple-touch-icon.png': 180 }
+const [firstPhoto] = await list(picturesDir, IMAGE)
+
+if (firstPhoto) {
+  await mkdir(iconsOut, { recursive: true })
+  const src = path.join(picturesDir, firstPhoto)
+  const key = await fingerprint(src)
+  const missing = Object.keys(ICONS).some((file) => !existsSync(path.join(iconsOut, file)))
+  if (cache.icons?.key !== key || missing) {
+    const { data, info } = await sharp(src).rotate().toBuffer({ resolveWithObject: true })
+    const side = Math.min(info.width, info.height)
+    const square = {
+      left: Math.round((info.width - side) / 2),
+      top: Math.round((info.height - side) * 0.22),
+      width: side,
+      height: side,
+    }
+    for (const [file, size] of Object.entries(ICONS)) {
+      await sharp(data).extract(square).resize(size, size).png().toFile(path.join(iconsOut, file))
+    }
+  }
+  nextCache.icons = { key }
+  console.log(`icons: pictures/${firstPhoto} → public/icons/`)
 }
 
 // ---------- write ----------

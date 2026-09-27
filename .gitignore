@@ -5,4 +5,5 @@ dist
 # Generated from pictures/ and music/ by `npm run media` (runs before dev/build)
 public/photos/
 public/audio/
+public/icons/
 src/media.json
