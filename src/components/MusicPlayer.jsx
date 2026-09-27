@@ -32,6 +32,7 @@ export default function MusicPlayer({ song }) {
   const pillRef = useRef(null)
   const audioRef = useRef(null)
   const draggedRef = useRef(false)
+  const wantsMusicRef = useRef(true) // the song is on until they turn it off
 
   const slide = (nextOpen, velocity = 0) => {
     setOpen(nextOpen)
@@ -63,26 +64,9 @@ export default function MusicPlayer({ song }) {
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
-    const onPlay = () => setPlaying(true)
-    const onPause = () => setPlaying(false)
-    audio.addEventListener('play', onPlay)
-    audio.addEventListener('pause', onPause)
-    return () => {
-      audio.removeEventListener('play', onPlay)
-      audio.removeEventListener('pause', onPause)
-    }
-  }, [])
-
-  const toggle = async () => {
-    const audio = audioRef.current
-    if (!audio) return
-    if (!audio.paused) {
-      audio.pause()
-      return
-    }
-    try {
-      await audio.play()
-      if ('mediaSession' in navigator && song.cover) {
+    const onPlay = () => {
+      setPlaying(true)
+      if ('mediaSession' in navigator && song.cover && !navigator.mediaSession.metadata) {
         navigator.mediaSession.metadata = new MediaMetadata({
           ...songInfo,
           artwork: [
@@ -90,6 +74,55 @@ export default function MusicPlayer({ song }) {
           ],
         })
       }
+    }
+    const onPause = () => setPlaying(false)
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    return () => {
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+    }
+  }, [song.cover])
+
+  // The song plays by default. Browsers only allow sound after the visitor's first tap or
+  // key press, so try straight away and otherwise start on the first interaction anywhere.
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    const events = ['pointerup', 'touchend', 'click', 'keydown']
+    let done = false
+    const stop = () => {
+      done = true
+      for (const type of events) document.removeEventListener(type, onInteraction, true)
+    }
+    const start = () => {
+      if (done) return
+      if (!wantsMusicRef.current) return stop()
+      audio.play().then(stop, (error) => {
+        if (error.name !== 'NotAllowedError') stop()
+      })
+    }
+    const onInteraction = (e) => {
+      // The play/pause button handles its own taps.
+      if (e.target instanceof Element && e.target.closest('.player__play')) return
+      start()
+    }
+    for (const type of events) document.addEventListener(type, onInteraction, true)
+    start()
+    return stop
+  }, [])
+
+  const toggle = async () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (!audio.paused) {
+      wantsMusicRef.current = false
+      audio.pause()
+      return
+    }
+    wantsMusicRef.current = true
+    try {
+      await audio.play()
     } catch (error) {
       console.warn('Could not play the song', error)
     }
@@ -167,7 +200,7 @@ export default function MusicPlayer({ song }) {
         </button>
       </motion.div>
 
-      {song.src && <audio ref={audioRef} src={asset(song.src)} loop preload="metadata" />}
+      {song.src && <audio ref={audioRef} src={asset(song.src)} loop preload="auto" />}
     </motion.div>
   )
 }
