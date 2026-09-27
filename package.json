@@ -1,0 +1,25 @@
+{
+  "name": "uzayr-birthday",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "media": "node scripts/prepare-media.mjs",
+    "predev": "npm run media --silent",
+    "dev": "vite --host",
+    "prebuild": "npm run media --silent",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "dependencies": {
+    "@fontsource/satisfy": "^5.3.0",
+    "motion": "^13.4.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "sharp": "^0.35.4",
+    "vite": "^8.3.1"
+  }
+}

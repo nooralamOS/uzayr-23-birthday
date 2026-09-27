@@ -1,0 +1,471 @@
+:root {
+  --bg-top: #782585;
+  --bg-mid: #cf878e;
+  --bg-bottom: #c38f45;
+  --ring: #c38e47;
+  --chevron: #8b5492;
+  --ink: #111;
+
+  /* Grey "chrome" gradients sampled from the mockup */
+  --card-fill: linear-gradient(180deg, #c5c5c5 0%, #939393 88%);
+  --pill-fill: linear-gradient(180deg, #dfdfdf 0%, #7d7d7d 100%);
+  --shelf-fill: linear-gradient(180deg, #e2e2e2 0%, #cdcdcd 100%);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  background: var(--bg-bottom);
+  overscroll-behavior: none;
+}
+
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bottom) 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  touch-action: manipulation;
+}
+
+img {
+  display: block;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- layout ---------- */
+
+.app {
+  position: fixed;
+  inset: 0;
+  width: min(100%, 480px);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  height: 74px;
+  margin-top: max(var(--safe-top), 14px);
+  display: flex;
+  align-items: center;
+  padding-left: 36px;
+  container-type: inline-size;
+}
+
+.title {
+  margin: 0;
+  font-family: 'Satisfy', cursive;
+  font-weight: 400;
+  /* Largest size that still ends just before the music tab */
+  font-size: min(28px, (100cqi - 44px) / 12.4);
+  line-height: 1;
+  translate: 0 4px;
+  color: #fff;
+  white-space: nowrap;
+  -webkit-text-stroke: 8px #000;
+  paint-order: stroke fill;
+  filter: drop-shadow(0 1px 0 #000) drop-shadow(0 1px 2px rgb(0 0 0 / 0.25));
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.title[data-ready] {
+  opacity: 1;
+}
+
+/* ---------- photo carousel ---------- */
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  touch-action: none;
+  cursor: grab;
+}
+
+.stage:active {
+  cursor: grabbing;
+}
+
+.stage__track {
+  position: absolute;
+  inset: clamp(12px, 3.2dvh, 27px) 0 clamp(20px, 6.8dvh, 58px);
+  display: grid;
+  place-items: center;
+  container-type: size;
+  pointer-events: none;
+  animation: rise 700ms var(--ease-out) 80ms both;
+}
+
+.card {
+  --pad: 13px;
+  --card-w: min(77.5cqw, 340px);
+  grid-area: 1 / 1;
+  width: var(--card-w);
+  height: min(var(--card-w) * 1.595, 100cqh);
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: var(--card-fill);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 -1px 0 rgb(0 0 0 / 0.08),
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 4px 14px rgb(0 0 0 / 0.4);
+  container-type: size;
+  will-change: transform;
+}
+
+.card--ghost {
+  z-index: 1;
+}
+
+/* Full card width, sized to the photo's own shape; grey margin above and below. */
+.photo {
+  position: relative;
+  width: min(100cqw - 2 * var(--pad), (100cqh - 2 * var(--pad)) * var(--ar));
+  aspect-ratio: var(--ar);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #8a8a8a;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.35);
+}
+
+/* Inset shadow sits above the photo so it reads as pressed into the card. */
+.photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 3px 6px -1px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px rgb(0 0 0 / 0.14);
+  pointer-events: none;
+}
+
+.photo__placeholder,
+.photo__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo__img {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.photo__img[data-loaded] {
+  opacity: 1;
+}
+
+/* ---------- thumbnail tray ---------- */
+
+.tray {
+  position: relative;
+  flex: none;
+  height: 104px;
+  margin-bottom: calc(var(--safe-bottom) + 18px);
+  animation: rise 700ms var(--ease-out) 160ms both;
+}
+
+.tray__shelf {
+  position: absolute;
+  inset: 0 26px;
+  border-radius: 16px;
+  background: var(--shelf-fill);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.7),
+    0 1px 2px rgb(0 0 0 / 0.2),
+    0 4px 12px rgb(0 0 0 / 0.18);
+}
+
+.tray__scroller {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.tray__scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* Spacers so the first and last thumbnails can sit in the centre. */
+.tray__scroller::before,
+.tray__scroller::after {
+  content: '';
+  flex: none;
+  width: calc(50% - 38px - 14px);
+  height: 1px;
+}
+
+.thumb {
+  position: relative;
+  flex: none;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #2a2a2a;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  transition:
+    transform 260ms var(--ease-pop),
+    box-shadow 200ms ease;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.thumb[aria-current] {
+  transform: scale(1.1);
+  box-shadow:
+    0 0 0 5px var(--ring),
+    0 0 0 6px rgb(0 0 0 / 0.12),
+    0 4px 10px rgb(0 0 0 / 0.35);
+}
+
+.thumb:active {
+  transform: scale(0.94);
+}
+
+.thumb[aria-current]:active {
+  transform: scale(1.05);
+}
+
+.thumb:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 8px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .thumb:not([aria-current]):hover {
+    transform: scale(1.04);
+  }
+}
+
+/* ---------- music player ---------- */
+
+.player {
+  position: absolute;
+  top: 0;
+  right: 12px;
+  width: 142px;
+  height: 74px;
+  border-radius: 15px;
+  background: var(--pill-fill);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 4px 12px rgb(0 0 0 / 0.3);
+  touch-action: none;
+}
+
+.player__tab {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 15px 0 0 15px;
+  background: none;
+  color: var(--chevron);
+  cursor: pointer;
+}
+
+.chevron {
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.35));
+}
+
+.player__body {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 19px;
+  padding-left: 18px;
+}
+
+.player__art {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.player__cover {
+  width: 36px;
+  height: 36px;
+  border-radius: 5px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #f39ad6, #9b4fa0);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
+.wave {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 36px;
+  height: 14px;
+}
+
+.wave span {
+  width: 2.2px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: scaleY(var(--rest));
+  animation: wave var(--dur) ease-in-out var(--delay) infinite alternate paused;
+}
+
+.wave[data-playing] span {
+  animation-play-state: running;
+}
+
+.player__play {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 160ms ease;
+}
+
+.player__play svg {
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.45));
+}
+
+.player__play:active {
+  transform: scale(0.9);
+}
+
+.player__play:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon {
+  fill: currentColor;
+  opacity: 0;
+  transform: scale(0.6);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity 150ms ease,
+    transform 200ms var(--ease-out);
+}
+
+.icon[data-shown] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.player__tab:focus-visible,
+.player__play:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+
+/* On wider screens the app is a centred column; fade its edges instead of hard-cutting the neighbours. */
+@media (min-width: 520px) {
+  .stage,
+  .tray__scroller {
+    mask-image: linear-gradient(90deg, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+  }
+}
+
+/* ---------- motion ---------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes wave {
+  from {
+    transform: scaleY(var(--rest));
+  }
+  to {
+    transform: scaleY(var(--peak));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage__track,
+  .tray,
+  .wave span {
+    animation: none;
+  }
+
+  .title,
+  .photo__img,
+  .thumb,
+  .icon,
+  .player__play {
+    transition: none;
+  }
+}
